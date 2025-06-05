@@ -9,6 +9,11 @@ base_dir = os.path.abspath("vfs")
 os.makedirs(base_dir, exist_ok=True)
 current_dir = base_dir
 
+# Pre-create a directory and file
+os.makedirs(os.path.join(base_dir, "antoniobetton"), exist_ok=True)
+with open(os.path.join(base_dir, "antoniobetton", "readme.txt"), "w") as f:
+    f.write("Welcome to ShellCoach!")
+
 @app.route("/")
 def index():
     return send_from_directory(".", "terminal.html")
