@@ -2,81 +2,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>ShellCoach Terminal</title>
-    <style>
-        body {
-            background-color: #0d1117;
-            color: white;
-            font-family: monospace;
-            padding: 20px;
-        }
-        #terminal {
-            width: 100%;
-            height: 300px;
-            background-color: #161b22;
-            padding: 15px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            border-radius: 6px;
-        }
-        #input {
-            width: 100%;
-            background: #0d1117;
-            color: white;
-            border: 1px solid #30363d;
-            padding: 10px;
-            font-family: monospace;
-        }
-        button {
-            margin-top: 10px;
-            background-color: #f0b400;
-            color: #000;
-            border: none;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>ShellCoach Terminal</title>
+  <style>
+    body {
+      background-color: #0d1117;
+      color: white;
+      font-family: monospace;
+      padding: 20px;
+    }
+    #terminal {
+      width: 100%;
+      height: 300px;
+      background-color: #161b22;
+      padding: 15px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      border-radius: 6px;
+    }
+    #input {
+      width: 100%;
+      background: #0d1117;
+      color: white;
+      border: 1px solid #30363d;
+      padding: 10px;
+      font-family: monospace;
+    }
+    button {
+      margin-top: 10px;
+      background-color: #f0b400;
+      color: #000;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-    <h2>ShellCoach Terminal</h2>
-    <div id="terminal">Welcome to KernelPlus Terminal
+  <h2>ShellCoach Terminal</h2>
+  <div id="terminal">Welcome to KernelPlus Terminal
 Type "help" to get started.</div>
-    <input type="text" id="input" onkeydown="if(event.key==='Enter'){runCommand();}" autofocus />
-    <br>
-    <button onclick="toggleAI()">ShellCoach</button>
-    <p id="ai-output"></p>
+  <input type="text" id="input" onkeydown="if(event.key==='Enter'){runCommand();}" autofocus />
+  <br />
+  <button onclick="toggleAI()">ShellCoach</button>
+  <p id="ai-output"></p>
 
-    <script>
-        const terminal = document.getElementById("terminal");
-        const input = document.getElementById("input");
-        const output = document.getElementById("ai-output");
-        let aiVisible = false;
+  <script>
+    let lastCommand = "";
+    const terminal = document.getElementById("terminal");
+    const input = document.getElementById("input");
+    const output = document.getElementById("ai-output");
 
-        function toggleAI() {
-            if (!aiVisible) {
-                output.innerText = "Example: The 'touch' command creates an empty file.";
-            } else {
-                output.innerText = "";
-            }
-            aiVisible = !aiVisible;
-        }
+    function toggleAI() {
+      const explanations = {
+        "ls -l": "Lists files with detailed info: permissions, owner, size, date.",
+        "mkdir": "Creates a new directory.",
+        "cd": "Changes the current directory.",
+        "touch": "Creates a new empty file.",
+        "pwd": "Prints the current working directory.",
+        "rmdir": "Removes an empty directory.",
+        "cp": "Copies files or directories.",
+        "cat": "Displays file contents.",
+        "whoami": "Displays the current logged-in user."
+      };
+      output.innerText = explanations[lastCommand] || "No explanation available for this command.";
+    }
 
-        async function runCommand() {
-            const command = input.value;
-            input.value = '';
-            terminal.innerText += "\n$ " + command;
+    async function runCommand() {
+      const command = input.value;
+      lastCommand = command.split(" ")[0];
+      input.value = '';
+      terminal.innerText += "\n$ " + command;
 
-            const response = await fetch("/run", {
-                method: "POST",
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ command })
-            });
-            const data = await response.text();
-            terminal.innerText += "\n" + data;
-            terminal.scrollTop = terminal.scrollHeight;
-        }
-    </script>
+      const response = await fetch("/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command })
+      });
+      const data = await response.text();
+      terminal.innerText += "\n" + data;
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+  </script>
 </body>
 </html>
