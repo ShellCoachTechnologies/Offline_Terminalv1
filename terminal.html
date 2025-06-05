@@ -3,88 +3,113 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>ShellCoach Terminal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KernelPlus Terminal</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
   <style>
-    body {
-      background-color: #0d1117;
-      color: white;
-      font-family: monospace;
-      padding: 20px;
-    }
-    #terminal {
-      width: 100%;
-      height: 300px;
-      background-color: #161b22;
-      padding: 15px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      border-radius: 6px;
-    }
-    #input {
-      width: 100%;
-      background: #0d1117;
-      color: white;
-      border: 1px solid #30363d;
-      padding: 10px;
-      font-family: monospace;
-    }
-    button {
-      margin-top: 10px;
-      background-color: #f0b400;
-      color: #000;
-      border: none;
-      padding: 10px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
+    body { margin: 0; background: #000; color: #fff; }
+    #terminal { height: 100vh; }
   </style>
 </head>
 <body>
-  <h2>ShellCoach Terminal</h2>
-  <div id="terminal">Welcome to KernelPlus Terminal\nType "help" to get started.</div>
-  <input type="text" id="input" onkeydown="if(event.key==='Enter'){runCommand();}" autofocus />
-  <br />
-  <button onclick="toggleAI()">ShellCoach</button>
-  <p id="ai-output"></p>
-
+  <div id="terminal"></div>
+  <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.min.js"></script>
   <script>
-    let lastCommand = "";
-    const terminal = document.getElementById("terminal");
-    const input = document.getElementById("input");
-    const output = document.getElementById("ai-output");
+    const term = new Terminal();
+    term.open(document.getElementById('terminal'));
 
-    function toggleAI() {
-      const explanations = {
-        "ls": "Lists directory contents.",
-        "ls -l": "Lists files with detailed info: permissions, owner, size, date.",
-        "mkdir antoniobetton": "Creates a directory named 'antoniobetton'.",
-        "cd": "Changes the current directory.",
-        "touch": "Creates a new empty file.",
-        "pwd": "Prints the current working directory.",
-        "echo": "Outputs the specified text.",
-        "rmdir": "Removes an empty directory.",
-        "cp": "Copies files or directories.",
-        "cat": "Displays the contents of a file.",
-        "whoami": "Displays the current user."
-      };
-      output.innerText = explanations[lastCommand] || "No explanation available for this command.";
+    let currentDir = '/home/cloudnix_user';
+    let username = 'cloudnix_user';
+    let hostname = 'KernelPlusUser';
+
+    let fs = {
+      '/': ['home'],
+      '/home': ['cloudnix_user'],
+      '/home/cloudnix_user': ['Documents', 'Downloads']
+    };
+
+    function getCurrentDirContent() {
+      return fs[currentDir] || [];
     }
 
-    async function runCommand() {
-      const command = input.value.trim();
-      lastCommand = command;
-      input.value = '';
-      terminal.innerText += "\n$ " + command;
+    const commands = {
+      help: 'Available commands: ls, cd, pwd, whoami, echo, cat, clear, mkdir, rmdir, touch, rm, cp, mv',
+      ls: () => getCurrentDirContent().join('  '),
+      cd: args => {
+        if (!args[0]) return '';
+        const path = args[0].startsWith('/') ? args[0] : currentDir + '/' + args[0];
+        if (fs[path]) {
+          currentDir = path;
+          return '';
+        } else {
+          return 'No such directory: ' + args[0];
+        }
+      },
+      pwd: () => currentDir,
+      whoami: () => username,
+      echo: args => args.join(' '),
+      cat: args => args[0] ? `Simulated file output: ${args[0]}` : 'No file specified',
+      clear: () => term.clear(),
+      mkdir: args => {
+        if (!args[0]) return 'Usage: mkdir <dirname>';
+        const dirName = args[0];
+        if (!fs[currentDir]) fs[currentDir] = [];
+        if (!fs[currentDir].includes(dirName)) {
+          fs[currentDir].push(dirName);
+          fs[`${currentDir}/${dirName}`] = [];
+          return `Directory '${dirName}' created`;
+        }
+        return `Directory '${dirName}' already exists`;
+      },
+      rmdir: args => {
+        if (!args[0]) return 'Usage: rmdir <dirname>';
+        const dir = args[0];
+        const path = `${currentDir}/${dir}`;
+        if (fs[path] && fs[path].length === 0) {
+          fs[currentDir] = fs[currentDir].filter(d => d !== dir);
+          delete fs[path];
+          return `Directory '${dir}' removed`;
+        } else {
+          return `Cannot remove '${dir}': Directory not empty or doesn't exist`;
+        }
+      }
+    };
 
-      const response = await fetch("/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ command })
-      });
-      const data = await response.text();
-      terminal.innerText += "\n" + data;
-      terminal.scrollTop = terminal.scrollHeight;
+    function prompt() {
+      term.write(`\r\n${username}@${hostname}:${currentDir}$ `);
     }
+
+    term.write('Welcome to KernelPlus Terminal\r\nType "help" to get started.');
+    prompt();
+
+    let buffer = '';
+    term.onKey(e => {
+      const char = e.key;
+      const code = e.domEvent.keyCode;
+
+      if (code === 13) {
+        term.write('\r\n');
+        const parts = buffer.trim().split(' ');
+        const cmd = parts[0];
+        const args = parts.slice(1);
+        buffer = '';
+        if (cmd in commands) {
+          const output = typeof commands[cmd] === 'function' ? commands[cmd](args) : commands[cmd];
+          if (output) term.write(output);
+        } else if (cmd !== '') {
+          term.write(`Command not found: ${cmd}`);
+        }
+        prompt();
+      } else if (code === 8) {
+        if (buffer.length > 0) {
+          buffer = buffer.slice(0, -1);
+          term.write('\b \b');
+        }
+      } else if (char >= ' ') {
+        buffer += char;
+        term.write(char);
+      }
+    });
   </script>
 </body>
 </html>
