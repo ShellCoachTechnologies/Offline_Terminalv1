@@ -41,8 +41,7 @@
 </head>
 <body>
   <h2>ShellCoach Terminal</h2>
-  <div id="terminal">Welcome to KernelPlus Terminal
-Type "help" to get started.</div>
+  <div id="terminal">Welcome to KernelPlus Terminal\nType "help" to get started.</div>
   <input type="text" id="input" onkeydown="if(event.key==='Enter'){runCommand();}" autofocus />
   <br />
   <button onclick="toggleAI()">ShellCoach</button>
@@ -56,22 +55,24 @@ Type "help" to get started.</div>
 
     function toggleAI() {
       const explanations = {
+        "ls": "Lists directory contents.",
         "ls -l": "Lists files with detailed info: permissions, owner, size, date.",
-        "mkdir": "Creates a new directory.",
+        "mkdir antoniobetton": "Creates a directory named 'antoniobetton'.",
         "cd": "Changes the current directory.",
         "touch": "Creates a new empty file.",
         "pwd": "Prints the current working directory.",
+        "echo": "Outputs the specified text.",
         "rmdir": "Removes an empty directory.",
         "cp": "Copies files or directories.",
-        "cat": "Displays file contents.",
-        "whoami": "Displays the current logged-in user."
+        "cat": "Displays the contents of a file.",
+        "whoami": "Displays the current user."
       };
       output.innerText = explanations[lastCommand] || "No explanation available for this command.";
     }
 
     async function runCommand() {
-      const command = input.value;
-      lastCommand = command.split(" ")[0];
+      const command = input.value.trim();
+      lastCommand = command;
       input.value = '';
       terminal.innerText += "\n$ " + command;
 
